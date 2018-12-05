@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using DateObject = System.DateTime;
 
@@ -27,7 +28,14 @@ namespace Microsoft.Recognizers.Text.DateTime
             tokens.AddRange(MergeTwoTimePoints(text, reference));
             tokens.AddRange(MatchTimeOfDay(text));
 
-            return Token.MergeAllTokens(tokens, text, ExtractorName);
+            var timePeriodErs = Token.MergeAllTokens(tokens, text, ExtractorName);
+
+            if ((this.config.Options & DateTimeOptions.EnablePreview) != 0)
+            {
+                timePeriodErs = TimeZoneUtility.MergeTimeZones(timePeriodErs, config.TimeZoneExtractor.Extract(text, reference), text);
+            }
+
+            return timePeriodErs;
         }
 
         // Cases like "from 3 to 5am" or "between 3:30 and 5" are extracted here
@@ -67,6 +75,10 @@ namespace Microsoft.Recognizers.Text.DateTime
                             {
                                 endWithValidToken = true;
                             }
+                            else if ((this.config.Options & DateTimeOptions.EnablePreview) != 0)
+                            {
+                                endWithValidToken = StartsWithTimeZone(afterStr);
+                            }
                         }
 
                         if (endWithValidToken)
@@ -86,11 +98,40 @@ namespace Microsoft.Recognizers.Text.DateTime
                         {
                             ret.Add(new Token(match.Index, match.Index + match.Length));
                         }
+                        else
+                        {
+                            var afterStr = text.Substring(match.Index + match.Length);
+
+                            if ((this.config.Options & DateTimeOptions.EnablePreview) != 0 && StartsWithTimeZone(afterStr))
+                            {
+                                ret.Add(new Token(match.Index, match.Index + match.Length));
+                            }
+                        }
                     }
                 }
             }
 
             return ret;
+        }
+
+        private bool StartsWithTimeZone(string afterText)
+        {
+            var startsWithTimeZone = false;
+
+            var timeZoneErs = config.TimeZoneExtractor.Extract(afterText);
+            var firstTimeZone = timeZoneErs.OrderBy(t => t.Start).FirstOrDefault();
+
+            if (firstTimeZone != null)
+            {
+                var beforeText = afterText.Substring(0, firstTimeZone.Start ?? 0);
+
+                if (string.IsNullOrWhiteSpace(beforeText))
+                {
+                    startsWithTimeZone = true;
+                }
+            }
+
+            return startsWithTimeZone;
         }
 
         private List<Token> MergeTwoTimePoints(string text, DateObject reference)
@@ -148,8 +189,8 @@ namespace Microsoft.Recognizers.Text.DateTime
 
                     // check connector string
                     var midStr = text.Substring(numEndPoint?? 0, ers[j].Start-numEndPoint?? 0);
-                    var match = this.config.TillRegex.Match(midStr);
-                    if (match.Success && match.Length == midStr.Trim().Length || config.IsConnectorToken(midStr.Trim()))
+
+                    if (config.TillRegex.IsExactMatch(midStr, trim: true) || config.IsConnectorToken(midStr.Trim()))
                     {
                         timeNumbers.Add(numErs[i]);
                     }
@@ -191,16 +232,15 @@ namespace Microsoft.Recognizers.Text.DateTime
                 }
 
                 var middleStr = text.Substring(middleBegin, middleEnd - middleBegin).Trim().ToLowerInvariant();
-                var match = this.config.TillRegex.Match(middleStr);
                 
                 // Handle "{TimePoint} to {TimePoint}"
-                if (match.Success && match.Index == 0 && match.Length == middleStr.Length)
+                if (config.TillRegex.IsExactMatch(middleStr, trim: true))
                 {
                     var periodBegin = ers[idx].Start ?? 0;
                     var periodEnd = (ers[idx + 1].Start ?? 0) + (ers[idx + 1].Length ?? 0);
 
                     // Handle "from"
-                    var beforeStr = text.Substring(0, periodBegin).Trim().ToLowerInvariant();
+                    var beforeStr = text.Substring(0, periodBegin).TrimEnd().ToLowerInvariant();
                     if (this.config.GetFromTokenIndex(beforeStr, out var fromIndex))
                     {
                         // Handle "from"

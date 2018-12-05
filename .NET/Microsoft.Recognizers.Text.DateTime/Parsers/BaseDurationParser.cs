@@ -132,7 +132,7 @@ namespace Microsoft.Recognizers.Text.DateTime
             var ret = new DateTimeResolutionResult();
             var suffixStr = text;
 
-            // if there are spaces between nubmer and unit
+            // if there are spaces between number and unit
             var ers = this.config.CardinalExtractor.Extract(text);
             if (ers.Count == 1)
             {
@@ -228,7 +228,7 @@ namespace Microsoft.Recognizers.Text.DateTime
                     var unitStr = this.config.UnitMap[srcUnit];
 
                     ret.Timex = TimexUtility.GenerateDurationTimex(numVal, unitStr, IsLessThanDay(unitStr));
-                    ret.FutureValue = ret.PastValue = double.Parse(numStr) * this.config.UnitValueMap[srcUnit];
+                    ret.FutureValue = ret.PastValue = double.Parse(numStr, CultureInfo.InvariantCulture) * this.config.UnitValueMap[srcUnit];
                     ret.Success = true;
                 }
                 else if (match.Groups[Constants.BusinessDayGroupName].Success)
@@ -266,7 +266,7 @@ namespace Microsoft.Recognizers.Text.DateTime
                     }
 
                     ret.Timex = TimexUtility.GenerateDurationTimex(numVal, unitStr, IsLessThanDay(unitStr));
-                    ret.FutureValue = ret.PastValue = double.Parse(numStr) * this.config.UnitValueMap[srcUnit];
+                    ret.FutureValue = ret.PastValue = double.Parse(numStr, CultureInfo.InvariantCulture) * this.config.UnitValueMap[srcUnit];
                     ret.Success = true;
                 }
                 else if (match.Groups[Constants.BusinessDayGroupName].Success)
@@ -342,7 +342,7 @@ namespace Microsoft.Recognizers.Text.DateTime
             var ret = new DateTimeResolutionResult();
             var durationExtractor = this.config.DurationExtractor;
 
-            //DurationExtractor without parameter will not extract merged duration
+            // DurationExtractor without parameter will not extract merged duration
             var ers = durationExtractor.Extract(text);
 
             // only handle merged duration cases like "1 month 21 days"

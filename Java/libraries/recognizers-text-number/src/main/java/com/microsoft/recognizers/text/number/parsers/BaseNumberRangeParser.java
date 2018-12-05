@@ -51,10 +51,11 @@ public class BaseNumberRangeParser implements IParser {
 
         List<Double> nums = er.stream().map(r -> {
             Object value = config.getNumberParser().parse(r).value;
-            return value == null ? 0 : (Double) value;
+            return value == null ? 0 : (Double)value;
         }).collect(Collectors.toList());
 
-        double startValue, endValue;
+        double startValue;
+        double endValue;
         if (nums.get(0) < nums.get(1)) {
             startValue = nums.get(0);
             endValue = nums.get(1);
@@ -66,8 +67,10 @@ public class BaseNumberRangeParser implements IParser {
         String startValueStr = config.getCultureInfo() != null ? NumberFormatUtility.format(startValue, config.getCultureInfo()) : String.valueOf(startValue);
         String endValueStr = config.getCultureInfo() != null ? NumberFormatUtility.format(endValue, config.getCultureInfo()) : String.valueOf(endValue);
 
-        char leftBracket, rightBracket;
-        String type = (String) extractResult.data;
+        char leftBracket;
+        char rightBracket;
+
+        String type = (String)extractResult.data;
         if (type.contains(NumberRangeConstants.TWONUMBETWEEN)) {
             // between 20 and 30: (20,30)
             leftBracket = NumberRangeConstants.LEFT_OPEN;
@@ -137,12 +140,15 @@ public class BaseNumberRangeParser implements IParser {
 
         List<Double> nums = er.stream().map(r -> {
             Object value = config.getNumberParser().parse(r).value;
-            return value == null ? 0 : (Double) value;
+            return value == null ? 0 : (Double)value;
         }).collect(Collectors.toList());
 
-        char leftBracket, rightBracket;
-        String startValueStr = "", endValueStr = "";
-        String type = (String) extractResult.data;
+        char leftBracket;
+        char rightBracket;
+        String startValueStr = "";
+        String endValueStr = "";
+
+        String type = (String)extractResult.data;
         if (type.contains(NumberRangeConstants.MORE)) {
             rightBracket = NumberRangeConstants.RIGHT_OPEN;
 

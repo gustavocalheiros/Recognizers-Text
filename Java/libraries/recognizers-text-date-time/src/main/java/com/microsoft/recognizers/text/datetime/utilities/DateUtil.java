@@ -1,13 +1,26 @@
 package com.microsoft.recognizers.text.datetime.utilities;
 
-import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 
 public class DateUtil {
+
+    public static LocalDateTime safeCreateFromValue(LocalDateTime datetime, int year, int month, int day, int hour, int minute, int second) {
+        if (isValidDate(year, month, day) && isValidTime(hour, minute, second)) {
+            datetime = safeCreateFromValue(datetime, year, month, day);
+            datetime = datetime.plusHours(hour - datetime.getHour());
+            datetime = datetime.plusMinutes((minute - datetime.getMinute()));
+            datetime = datetime.plusSeconds(second - datetime.getSecond());
+        }
+
+        return datetime;
+    }
 
     public static LocalDateTime safeCreateFromValue(LocalDateTime datetime, int year, int month, int day) {
         if (isValidDate(year, month, day)) {
@@ -20,7 +33,18 @@ public class DateUtil {
     }
 
     public static LocalDateTime safeCreateFromMinValue(int year, int month, int day) {
-        return safeCreateFromValue(minValue(), year, month, day);
+        return safeCreateFromValue(minValue(), year, month, day, 0, 0, 0);
+    }
+
+    public static LocalDateTime safeCreateFromMinValue(int year, int month, int day, int hour, int minute, int second) {
+        return safeCreateFromValue(minValue(), year, month, day, hour, minute, second);
+    }
+
+    public static LocalDateTime safeCreateFromMinValue(LocalDate date, LocalTime time) {
+        return safeCreateFromValue(minValue(),
+            date.getYear(), date.getMonthValue(), date.getDayOfMonth(),
+            time.getHour(), time.getMinute(), time.getSecond()
+        );
     }
 
     public static LocalDateTime minValue() {
@@ -33,21 +57,27 @@ public class DateUtil {
         }
 
         Integer[] validDays = {
-                31,
-                year %4 == 0 && year%100 != 0 || year%400 == 0 ? 29 : 28,
-                31,
-                30,
-                31,
-                30,
-                31,
-                31,
-                30,
-                31,
-                30,
-                31
+            31,
+            year % 4 == 0 && year % 100 != 0 || year % 400 == 0 ? 29 : 28,
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31
         };
 
         return month >= 1 && month <= 12 && day >= 1 && day <= validDays[month - 1];
+    }
+
+    public static boolean isValidTime(int hour, int minute, int second) {
+        return 0 <= hour && hour <= 23 &&
+                0 <= minute && minute <= 59 &&
+                0 <= second && second <= 59;
     }
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = new DateTimeFormatterBuilder()
@@ -59,8 +89,8 @@ public class DateUtil {
 
     public static LocalDateTime tryParse(String date) {
         try {
-           return LocalDateTime.parse(date, DATE_TIME_FORMATTER);
-        } catch(DateTimeParseException ex) {
+            return LocalDateTime.parse(date, DATE_TIME_FORMATTER);
+        } catch (DateTimeParseException ex) {
             return null;
         }
     }
@@ -68,13 +98,11 @@ public class DateUtil {
     public static LocalDateTime next(LocalDateTime from, int dayOfWeek) {
         int start = from.getDayOfWeek().getValue();
 
-        if (start == 0)
-        {
+        if (start == 0) {
             start = 7;
         }
 
-        if (dayOfWeek == 0)
-        {
+        if (dayOfWeek == 0) {
             dayOfWeek = 7;
         }
 
@@ -84,13 +112,11 @@ public class DateUtil {
     public static LocalDateTime thisDate(LocalDateTime from, int dayOfWeek) {
         int start = from.getDayOfWeek().getValue();
 
-        if (start == 0)
-        {
+        if (start == 0) {
             start = 7;
         }
 
-        if (dayOfWeek == 0)
-        {
+        if (dayOfWeek == 0) {
             dayOfWeek = 7;
         }
 
@@ -100,16 +126,19 @@ public class DateUtil {
     public static LocalDateTime last(LocalDateTime from, int dayOfWeek) {
         int start = from.getDayOfWeek().getValue();
 
-        if (start == 0)
-        {
+        if (start == 0) {
             start = 7;
         }
 
-        if (dayOfWeek == 0)
-        {
+        if (dayOfWeek == 0) {
             dayOfWeek = 7;
         }
 
         return from.plusDays(dayOfWeek - start - 7);
+    }
+
+    public static LocalDateTime plusPeriodInNanos(LocalDateTime reference, double period, ChronoUnit unit) {
+        long nanos = unit.getDuration().toNanos();
+        return reference.plusNanos(Math.round(nanos * period));
     }
 }

@@ -4,7 +4,7 @@
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
-    "NotSupported": "dotnet, javascript, python",
+    "NotSupported": "javascript, python",
     "Results": [
       {
         "Text": "morgen Abend gegen 8 Uhr",
@@ -17,7 +17,9 @@
               "value": "2016-11-08 20:00:00"
             }
           ]
-        }
+        },
+        "Start": 23,
+        "Length": 24
       }
     ]
   },
@@ -34,9 +36,9 @@
         "Value": {
           "values": [
             {
-              "timex": "",
+              "timex": "XXXX",
               "type": "date",
-              "value": "not resolved"
+              "value": "2016-03-27"
             }
           ]
         },
@@ -74,6 +76,7 @@
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
+    "Comment": "Returning only the future resolution",
     "NotSupported": "dotnet, javascript, python",
     "Results": [
       {
@@ -94,12 +97,14 @@
               "end": "2016-11-11 16:00:00"
             }
           ]
-        }
+        },
+        "Start": 3,
+        "Length": 18
       }
     ]
   },
   {
-    "Input": "Ich würde 2016-05 nicht hier",
+    "Input": "Ich bin 2016-05 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -118,13 +123,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 7
       }
     ]
   },
   {
-    "Input": "Ich würde 2016/05 nicht hier",
+    "Input": "Ich bin 2016/05 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -143,13 +148,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 7
       }
     ]
   },
   {
-    "Input": "Ich würde 05/2016 nicht hier",
+    "Input": "Ich bin 05/2016 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -168,13 +173,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 7
       }
     ]
   },
   {
-    "Input": "Ich würde 05-2016 nicht hier",
+    "Input": "Ich bin 05-2016 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -193,13 +198,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 7
       }
     ]
   },
   {
-    "Input": "Ich würde 2016 -  05 nicht hier",
+    "Input": "Ich bin 2016 -  05 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -218,13 +223,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 10
       }
     ]
   },
   {
-    "Input": "Ich würde 2016  /05 nicht hier",
+    "Input": "Ich bin 2016  /05 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -243,13 +248,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 9
       }
     ]
   },
   {
-    "Input": "Ich würde 05/  2016 nicht hier",
+    "Input": "Ich bin 05/  2016 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -268,13 +273,13 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 9
       }
     ]
   },
   {
-    "Input": "Ich würde 05 -  2016 nicht hier",
+    "Input": "Ich bin 05 -  2016 nicht hier",
     "Context": {
       "ReferenceDateTime": "2016-11-07T00:00:00"
     },
@@ -293,7 +298,7 @@
             }
           ]
         },
-        "Start": 10,
+        "Start": 8,
         "Length": 10
       }
     ]

@@ -28,15 +28,25 @@ namespace Microsoft.Recognizers.Text.DateTime
             object value = null;
             if (er.Type.Equals(ParserName))
             {
-                var innerResult = ParseSimpleCases(er.Text, referenceTime);
-                if (!innerResult.Success)
-                {
-                    innerResult = MergeTwoTimePoints(er.Text, referenceTime);
-                }
+                DateTimeResolutionResult innerResult;
 
-                if (!innerResult.Success)
+                if (TimeZoneUtility.ShouldResolveTimeZone(er, config.Options))
                 {
-                    innerResult = ParseTimeOfDay(er.Text, referenceTime);
+                    var metadata = er.Data as Dictionary<string, object>;
+                    var timezoneEr = metadata[Constants.SYS_DATETIME_TIMEZONE] as ExtractResult;
+                    var timezonePr = config.TimeZoneParser.Parse(timezoneEr);
+
+                    innerResult = InternalParse(er.Text.Substring(0, (int)(er.Length - timezoneEr.Length)),
+                        referenceTime);
+
+                    if (timezonePr.Value != null)
+                    {
+                        innerResult.TimeZoneResolution = ((DateTimeResolutionResult)timezonePr.Value).TimeZoneResolution;
+                    }
+                }
+                else
+                {
+                    innerResult = InternalParse(er.Text, referenceTime);
                 }
 
                 if (innerResult.Success)
@@ -84,6 +94,23 @@ namespace Microsoft.Recognizers.Text.DateTime
             return ret;
         }
 
+        private DateTimeResolutionResult InternalParse(string entityText, DateObject referenceTime)
+        {
+            var innerResult = ParseSimpleCases(entityText, referenceTime);
+
+            if (!innerResult.Success)
+            {
+                innerResult = MergeTwoTimePoints(entityText, referenceTime);
+            }
+
+            if (!innerResult.Success)
+            {
+                innerResult = ParseTimeOfDay(entityText, referenceTime);
+            }
+
+            return innerResult;
+        }
+
         // Cases like "from 3 to 5am" or "between 3:30 and 5" are parsed here
         private DateTimeResolutionResult ParseSimpleCases(string text, DateObject referenceTime)
         {
@@ -106,14 +133,14 @@ namespace Microsoft.Recognizers.Text.DateTime
             int year = referenceTime.Year, month = referenceTime.Month, day = referenceTime.Day;
             var trimmedText = text.Trim().ToLower();
 
-            var match = this.config.PureNumberFromToRegex.Match(trimmedText);
+            var match = this.config.PureNumberFromToRegex.MatchBegin(trimmedText, trim: true);
 
             if (!match.Success)
             {
-                match = this.config.PureNumberBetweenAndRegex.Match(trimmedText);
+                match = this.config.PureNumberBetweenAndRegex.MatchBegin(trimmedText, trim: true);
             }
 
-            if (match.Success && match.Index == 0)
+            if (match.Success)
             {
                 // this "from .. to .." pattern is valid if followed by a Date OR "pm"
                 var isValid = false;
@@ -242,18 +269,17 @@ namespace Microsoft.Recognizers.Text.DateTime
         {
             var ret = new DateTimeResolutionResult();
             int year = referenceTime.Year, month = referenceTime.Month, day = referenceTime.Day;
-            var trimmedText = text.Trim().ToLower();
 
             // Handle cases like "from 4:30 to 5"
-            var match = config.SpecificTimeFromToRegex.Match(text);
+            var match = config.SpecificTimeFromToRegex.MatchExact(text, trim: true);
 
             if (!match.Success)
             {
                 // Handle cases like "between 5:10 and 7"
-                match = config.SpecificTimeBetweenAndRegex.Match(text);
+                match = config.SpecificTimeBetweenAndRegex.MatchExact(text, trim: true);
             }
 
-            if (match.Success && match.Index == 0 && match.Index + match.Length == trimmedText.Length)
+            if (match.Success)
             {
                 // Cases like "half past seven" are not handled here
                 if (match.Groups[Constants.PrefixGroupName].Success)

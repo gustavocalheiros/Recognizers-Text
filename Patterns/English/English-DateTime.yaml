@@ -17,6 +17,8 @@ PastPrefixRegex: !simpleRegex
   def: (last|past|previous)\b
 ThisPrefixRegex: !simpleRegex
   def: (this|current)\b
+RangePrefixRegex: !simpleRegex
+  def: (from|between)
 CenturySuffixRegex: !simpleRegex
   def: (^century)\b
 ReferencePrefixRegex: !simpleRegex
@@ -36,11 +38,24 @@ WrittenNumRegex: !simpleRegex
 FullTextYearRegex: !nestedRegex
   def: \b((?<firsttwoyearnum>{CenturyRegex})\s+(?<lasttwoyearnum>((zero|twenty|thirty|forty|fourty|fifty|sixty|seventy|eighty|ninety)\s+{WrittenNumRegex})|{WrittenNumRegex}))\b|\b(?<firsttwoyearnum>{CenturyRegex})\b
   references: [ CenturyRegex, WrittenNumRegex ]
-AmDescRegex: !simpleRegex
-  def: (am\b|a\.m\.|a m\b|a\. m\.|a\.m\b|a\. m\b|a m\b)
-PmDescRegex: !simpleRegex
-  def: (pm\b|p\.m\.|p\b|p m\b|p\. m\.|p\.m\b|p\. m\b|p m\b)
 # As month number can't be 0, so add (?!\.0\b) to filter out some wrong cases
+OclockRegex: !simpleRegex
+  def: (?<oclock>o\s*’\s*clock|o\s*‘\s*clock|o\s*'\s*clock|o\s*clock)
+SpecialDescRegex: !simpleRegex
+  def: (p\b)
+AmDescRegex: !nestedRegex
+  def: ({BaseDateTime.BaseAmDescRegex})
+  references: [BaseDateTime.BaseAmDescRegex]
+PmDescRegex: !nestedRegex
+  def: ({BaseDateTime.BasePmDescRegex})
+  references: [BaseDateTime.BasePmDescRegex]
+AmPmDescRegex: !nestedRegex
+  def: ({BaseDateTime.BaseAmPmDescRegex})
+  references: [BaseDateTime.BaseAmPmDescRegex]
+DescRegex: !nestedRegex
+  def: ((({OclockRegex}\s+)?(?<desc>({AmPmDescRegex}|{AmDescRegex}|{PmDescRegex}|{SpecialDescRegex})))|{OclockRegex})
+  references: [ OclockRegex, AmDescRegex, PmDescRegex, AmPmDescRegex, SpecialDescRegex ]
+# Exclude cases that include the "Am/Pm" suffix
 TwoDigitYearRegex: !nestedRegex
   def: \b(?<![$])(?<year>([0-27-9]\d))(?!(\s*((\:)|{AmDescRegex}|{PmDescRegex}|\.\d)))\b
   references: [ AmDescRegex, PmDescRegex]
@@ -66,11 +81,11 @@ TimeTokenPrefix: 'at '
 TokenBeforeDate: 'on '
 TokenBeforeTime: 'at '
 SimpleCasesRegex: !nestedRegex
-  def: \b((from|between)\s+)?({DayRegex})\s*{TillRegex}\s*({DayRegex}\s+{MonthSuffixRegex}|{MonthSuffixRegex}\s+{DayRegex})((\s+|\s*,\s*){YearRegex})?\b
-  references: [ DayRegex, TillRegex, MonthSuffixRegex, YearRegex ]
+  def: \b({RangePrefixRegex}\s+)?({DayRegex})\s*{TillRegex}\s*({DayRegex}\s+{MonthSuffixRegex}|{MonthSuffixRegex}\s+{DayRegex})((\s+|\s*,\s*){YearRegex})?\b
+  references: [ DayRegex, TillRegex, MonthSuffixRegex, YearRegex, RangePrefixRegex ]
 MonthFrontSimpleCasesRegex: !nestedRegex
-  def: \b((from|between)\s+)?{MonthSuffixRegex}\s+((from)\s+)?({DayRegex})\s*{TillRegex}\s*({DayRegex})((\s+|\s*,\s*){YearRegex})?\b
-  references: [ MonthSuffixRegex, DayRegex, TillRegex, YearRegex ]
+  def: \b({RangePrefixRegex}\s+)?{MonthSuffixRegex}\s+((from)\s+)?({DayRegex})\s*{TillRegex}\s*({DayRegex})((\s+|\s*,\s*){YearRegex})?\b
+  references: [ MonthSuffixRegex, DayRegex, TillRegex, YearRegex, RangePrefixRegex ]
 MonthFrontBetweenRegex: !nestedRegex
   def: \b{MonthSuffixRegex}\s+(between\s+)({DayRegex})\s*{RangeConnectorRegex}\s*({DayRegex})((\s+|\s*,\s*){YearRegex})?\b
   references: [ MonthSuffixRegex, DayRegex, RangeConnectorRegex , YearRegex ]
@@ -87,8 +102,8 @@ MonthNumWithYear: !nestedRegex
   def: \b(({BaseDateTime.FourDigitYearRegex}(\s*)[/\-\.](\s*){MonthNumRegex})|({MonthNumRegex}(\s*)[/\-](\s*){BaseDateTime.FourDigitYearRegex}))\b
   references: [ BaseDateTime.FourDigitYearRegex, MonthNumRegex ]
 WeekOfMonthRegex: !nestedRegex
-  def: \b(?<wom>(the\s+)?(?<cardinal>first|1st|second|2nd|third|3rd|fourth|4th|fifth|5th|last)\s+week\s+{MonthSuffixRegex})\b
-  references: [ MonthSuffixRegex ]
+  def: \b(?<wom>(the\s+)?(?<cardinal>first|1st|second|2nd|third|3rd|fourth|4th|fifth|5th|last)\s+week\s+{MonthSuffixRegex}(\s+{BaseDateTime.FourDigitYearRegex}|{RelativeRegex}\s+year)?)\b
+  references: [ MonthSuffixRegex, BaseDateTime.FourDigitYearRegex, RelativeRegex ]
 WeekOfYearRegex: !nestedRegex
   def: \b(?<woy>(the\s+)?(?<cardinal>first|1st|second|2nd|third|3rd|fourth|4th|fifth|5th|last)\s+week(\s+of)?\s+({YearRegex}|{RelativeRegex}\s+year))\b
   references: [ YearRegex, RelativeRegex ]
@@ -144,11 +159,11 @@ MonthOfRegex: !simpleRegex
   def: (month)(\s*)(of)
 MonthRegex: !simpleRegex
   def: (?<month>april|apr|august|aug|december|dec|february|feb|january|jan|july|jul|june|jun|march|mar|may|november|nov|october|oct|september|sept|sep)
-#Cases collected from mined data 
+# Cases collected from mined data 
 AmbiguousMonthP0Regex: !simpleRegex
   def: \b((^may i)|(i|you|he|she|we|they)\s+may|(may\s+((((also|not|(also not)|well)\s+)?(be|contain|constitute|email|e-mail|take|have|result|involve|get|work|reply))|(or may not))))\b
-#This is a look-behind assertion. Some cases should extract two digits as year like 11/25/16, where 16 means 2016. 
-#The assertion determines if not connected with am/pm or hour separator (:), which should be a time.
+# This is a look-behind assertion. Some cases should extract two digits as year like 11/25/16, where 16 means 2016. 
+# The assertion determines if not connected with am/pm or hour separator (:), which should be a time.
 DateYearRegex: !nestedRegex
   def: (?<year>{BaseDateTime.FourDigitYearRegex}|{TwoDigitYearRegex})
   references: [ BaseDateTime.FourDigitYearRegex, TwoDigitYearRegex ]
@@ -160,15 +175,17 @@ OnRegex: !nestedRegex
   references: [ DayRegex ]
 RelaxedOnRegex: !simpleRegex
   def: (?<=\b(on|at|in)\s+)((?<day>10th|11th|11st|12nd|12th|13rd|13th|14th|15th|16th|17th|18th|19th|1st|20th|21st|21th|22nd|22th|23rd|23th|24th|25th|26th|27th|28th|29th|2nd|30th|31st|3rd|4th|5th|6th|7th|8th|9th)s?)\b
+PrefixWeekDayRegex: !simpleRegex
+  def: (\s*((,?\s*on)|[-—–]))
 ThisRegex: !nestedRegex
-  def: \b((this(\s*week)?(\s*on)?\s+){WeekDayRegex})|({WeekDayRegex}((\s+of)?\s+this\s*week))\b
-  references: [ WeekDayRegex ]
+  def: \b(this(\s*week{PrefixWeekDayRegex}?)?\s*{WeekDayRegex})|({WeekDayRegex}((\s+of)?\s+this\s*week))\b
+  references: [ WeekDayRegex, PrefixWeekDayRegex ]
 LastDateRegex: !nestedRegex
-  def: \b({PastPrefixRegex}(\s*week)?\s+{WeekDayRegex})|({WeekDayRegex}(\s+last\s*week))\b
-  references: [ PastPrefixRegex, WeekDayRegex ]
+  def: \b({PastPrefixRegex}(\s*week{PrefixWeekDayRegex}?)?\s*{WeekDayRegex})|({WeekDayRegex}(\s+last\s*week))\b
+  references: [ PastPrefixRegex, WeekDayRegex, PrefixWeekDayRegex ]
 NextDateRegex: !nestedRegex
-  def: \b({NextPrefixRegex}(\s*week(\s*,?\s*on)?)?\s+{WeekDayRegex})|((on\s+)?{WeekDayRegex}((\s+of)?\s+(the\s+following|(the\s+)?next)\s*week))\b
-  references: [ NextPrefixRegex, WeekDayRegex ]
+  def: \b({NextPrefixRegex}(\s*week{PrefixWeekDayRegex}?)?\s*{WeekDayRegex})|((on\s+)?{WeekDayRegex}((\s+of)?\s+(the\s+following|(the\s+)?next)\s*week))\b
+  references: [ NextPrefixRegex, WeekDayRegex, PrefixWeekDayRegex ]
 SpecialDayRegex: !nestedRegex
   def: \b((the\s+)?day before yesterday|(the\s+)?day after (tomorrow|tmr)|the\s+day\s+(before|after)(?!=\s+day)|((the\s+)?({RelativeRegex}|my)\s+day)|yesterday|tomorrow|tmr|today)\b
   references: [ RelativeRegex ]
@@ -209,14 +226,24 @@ DateExtractor5: !nestedRegex
 DateExtractor6: !nestedRegex
   def: (?<={DatePreposition}\s+)({WeekDayRegex}\s+)?{MonthNumRegex}[\-\.]{DayRegex}(?![%])\b
   references: [ MonthNumRegex, DayRegex, WeekDayRegex, DatePreposition ]
-DateExtractor7: !nestedRegex
-  def: \b({WeekDayRegex}\s+)?{MonthNumRegex}\s*/\s*{DayRegex}((\s+|\s*,\s*|\s+of\s+){DateYearRegex})?(?![%])\b
+DateExtractor7L: !nestedRegex
+  def: \b({WeekDayRegex}\s+)?{MonthNumRegex}\s*/\s*{DayRegex}((\s+|\s*,\s*|\s+of\s+){DateYearRegex})(?![%])\b
   references: [ MonthNumRegex, DayRegex, DateYearRegex, WeekDayRegex ]
+DateExtractor7S: !nestedRegex
+  def: \b({WeekDayRegex}\s+)?{MonthNumRegex}\s*/\s*{DayRegex}(?![%])\b
+  references: [ MonthNumRegex, DayRegex, DateYearRegex, WeekDayRegex ]
+# The only difference between 7L and 7S is whether "Year" part is required
+# We have both the long and short Regex because we would like to catch both "11/20, 12" and "11/20, 12/20"
+# Only use the long Regex would ignore "11/20" in "11/20, 12/20" and it is hard to exhaust all characters after the "year" as we also have cases like "11/20, 12 of April"
+# Same for DateExtractor9L and DateExtractor9S
 DateExtractor8: !nestedRegex
   def: (?<={DatePreposition}\s+)({WeekDayRegex}\s+)?{DayRegex}[\\\-]{MonthNumRegex}(?![%])\b
   references: [ DayRegex, MonthNumRegex, WeekDayRegex, DatePreposition ]
-DateExtractor9: !nestedRegex
-  def: \b({WeekDayRegex}\s+)?{DayRegex}\s*/\s*{MonthNumRegex}((\s+|\s*,\s*|\s+of\s+){DateYearRegex})?(?![%])\b
+DateExtractor9L: !nestedRegex
+  def: \b({WeekDayRegex}\s+)?{DayRegex}\s*/\s*{MonthNumRegex}((\s+|\s*,\s*|\s+of\s+){DateYearRegex})(?![%])\b
+  references: [ DayRegex, MonthNumRegex, DateYearRegex, WeekDayRegex ]
+DateExtractor9S: !nestedRegex
+  def: \b({WeekDayRegex}\s+)?{DayRegex}\s*/\s*{MonthNumRegex}(?![%])\b
   references: [ DayRegex, MonthNumRegex, DateYearRegex, WeekDayRegex ]
 DateExtractorA: !nestedRegex
   def: \b({WeekDayRegex}\s+)?{BaseDateTime.FourDigitYearRegex}\s*[/\\\-\.]\s*{MonthNumRegex}\s*[/\\\-\.]\s*{DayRegex}
@@ -232,11 +259,6 @@ WeekDayEnd: !nestedRegex
   references: [ WeekDayRegex ]
 RangeUnitRegex: !simpleRegex
   def: \b(?<unit>years|year|months|month|weeks|week)\b
-OclockRegex: !simpleRegex
-  def: (?<oclock>o\s*’\s*clock|o\s*‘\s*clock|o\s*'\s*clock|o\s*clock)
-DescRegex: !nestedRegex
-  def: ((({OclockRegex}\s+)?(?<desc>ampm|am\b|a\.m\.|a m\b|a\. m\.|a\.m\b|a\. m\b|a m\b|pm\b|p\.m\.|p m\b|p\. m\.|p\.m\b|p\. m\b|p\b|p m\b))|{OclockRegex})
-  references: [ OclockRegex ]
 HourNumRegex: !simpleRegex
   def: \b(?<hournum>zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b
 MinuteNumRegex: !simpleRegex
@@ -344,14 +366,14 @@ FirstTimeRegexInTimeRange: !nestedRegex
   def: \b{TimeRegexWithDotConnector}(\s*{DescRegex})?
   references: [ TimeRegexWithDotConnector, DescRegex ]
 PureNumFromTo: !nestedRegex
-  def: ((from|between)\s+)?({HourRegex}|{PeriodHourNumRegex})(\s*(?<leftDesc>{DescRegex}))?\s*{TillRegex}\s*({HourRegex}|{PeriodHourNumRegex})(?<rightDesc>\s*({PmRegex}|{AmRegex}|{DescRegex}))?
-  references: [ HourRegex, PeriodHourNumRegex, DescRegex, TillRegex, PmRegex, AmRegex ]
+  def: ({RangePrefixRegex}\s+)?({HourRegex}|{PeriodHourNumRegex})(\s*(?<leftDesc>{DescRegex}))?\s*{TillRegex}\s*({HourRegex}|{PeriodHourNumRegex})(?<rightDesc>\s*({PmRegex}|{AmRegex}|{DescRegex}))?
+  references: [ HourRegex, PeriodHourNumRegex, DescRegex, TillRegex, PmRegex, AmRegex, RangePrefixRegex ]
 PureNumBetweenAnd: !nestedRegex
   def: (between\s+)({HourRegex}|{PeriodHourNumRegex})(\s*(?<leftDesc>{DescRegex}))?\s*{RangeConnectorRegex}\s*({HourRegex}|{PeriodHourNumRegex})(?<rightDesc>\s*({PmRegex}|{AmRegex}|{DescRegex}))?
   references: [ HourRegex, PeriodHourNumRegex, DescRegex, PmRegex, AmRegex, RangeConnectorRegex ]
 SpecificTimeFromTo: !nestedRegex
-  def: ((from|between)\s+)?(?<time1>(({TimeRegex2}|{FirstTimeRegexInTimeRange})|({HourRegex}|{PeriodHourNumRegex})(\s*(?<leftDesc>{DescRegex}))?))\s*{TillRegex}\s*(?<time2>(({TimeRegex2}|{TimeRegexWithDotConnector}(?<rightDesc>\s*{DescRegex}))|({HourRegex}|{PeriodHourNumRegex})(\s*(?<rightDesc>{DescRegex}))?))
-  references: [ TimeRegex2, FirstTimeRegexInTimeRange, TimeRegexWithDotConnector, TillRegex, HourRegex, PeriodHourNumRegex, DescRegex, PmRegex, AmRegex ]
+  def: ({RangePrefixRegex}\s+)?(?<time1>(({TimeRegex2}|{FirstTimeRegexInTimeRange})|({HourRegex}|{PeriodHourNumRegex})(\s*(?<leftDesc>{DescRegex}))?))\s*{TillRegex}\s*(?<time2>(({TimeRegex2}|{TimeRegexWithDotConnector}(?<rightDesc>\s*{DescRegex}))|({HourRegex}|{PeriodHourNumRegex})(\s*(?<rightDesc>{DescRegex}))?))
+  references: [ TimeRegex2, FirstTimeRegexInTimeRange, TimeRegexWithDotConnector, TillRegex, HourRegex, PeriodHourNumRegex, DescRegex, PmRegex, AmRegex, RangePrefixRegex ]
 SpecificTimeBetweenAnd: !nestedRegex
   def: (between\s+)(?<time1>(({TimeRegex2}|{FirstTimeRegexInTimeRange})|({HourRegex}|{PeriodHourNumRegex})(\s*(?<leftDesc>{DescRegex}))?))\s*{RangeConnectorRegex}\s*(?<time2>(({TimeRegex2}|{TimeRegexWithDotConnector}(?<rightDesc>\s*{DescRegex}))|({HourRegex}|{PeriodHourNumRegex})(\s*(?<rightDesc>{DescRegex}))?))
   references: [ TimeRegex2, FirstTimeRegexInTimeRange, TimeRegexWithDotConnector, RangeConnectorRegex, HourRegex, PeriodHourNumRegex, DescRegex, PmRegex, AmRegex ]
@@ -390,8 +412,12 @@ SimpleTimeOfTodayAfterRegex: !nestedRegex
 SimpleTimeOfTodayBeforeRegex: !nestedRegex
   def: '\b{DateTimeSpecificTimeOfDayRegex}(\s*,)?(\s+(at|around))?\s*({HourNumRegex}|{BaseDateTime.HourRegex})\b'
   references: [ DateTimeSpecificTimeOfDayRegex, HourNumRegex, BaseDateTime.HourRegex ]
-TheEndOfRegex: !simpleRegex
+SpecificEndOfRegex: !simpleRegex
   def: (the\s+)?end of(\s+the)?\s*$
+UnspecificEndOfRegex: !simpleRegex
+  def: \b(the\s+)?(eod|(end\s+of\s+day))\b
+UnspecificEndOfRangeRegex: !simpleRegex
+  def: \b(eoy)\b
 PeriodTimeOfDayRegex: !simpleRegex
   def: \b((in\s+(the)?\s+)?((?<early>early(\s+|-))|(?<late>late(\s+|-)))?(?<timeOfDay>morning|afternoon|night|evening))\b
 PeriodSpecificTimeOfDayRegex: !nestedRegex
@@ -423,7 +449,7 @@ SetLastRegex: !simpleRegex
 EachDayRegex: !simpleRegex
   def: ^\s*(each|every)\s*day\b
 DurationFollowedUnit: !nestedRegex
-  def: ^\s*{SuffixAndRegex}?(\s+|-)?{DurationUnitRegex}
+  def: (^\s*{DurationUnitRegex}\s+{SuffixAndRegex})|(^\s*{SuffixAndRegex}?(\s+|-)?{DurationUnitRegex})
   references: [ SuffixAndRegex, DurationUnitRegex ]
 NumberCombinedWithDurationUnit: !nestedRegex
   def: \b(?<num>\d+(\.\d*)?)(-)?{DurationUnitRegex}
@@ -474,8 +500,6 @@ WithinNextPrefixRegex: !nestedRegex
   def: \b(within(\s+the)?(\s+(?<next>{NextPrefixRegex}))?)\b
   references: [ NextPrefixRegex ]
 # "next" group here is used to judge uncommon unsupported cases like "within the next 5 days before today"
-AmPmDescRegex: !simpleRegex
-  def: (ampm)
 MorningStartEndRegex: !nestedRegex
   def: (^(morning|{AmDescRegex}))|((morning|{AmDescRegex})$)
   references: [ AmDescRegex ]
@@ -533,8 +557,8 @@ NumberEndingPattern: !nestedRegex
 OneOnOneRegex: !simpleRegex
   def: \b(1\s*:\s*1)|(one (on )?one|one\s*-\s*one|one\s*:\s*one)\b
 LaterEarlyPeriodRegex: !nestedRegex
-  def: \b({PrefixPeriodRegex})\s*\b\s*(?<suffix>{OneWordPeriodRegex})\b
-  references: [PrefixPeriodRegex, OneWordPeriodRegex]
+  def: \b(({PrefixPeriodRegex})\s*\b\s*(?<suffix>{OneWordPeriodRegex})|({UnspecificEndOfRangeRegex}))\b
+  references: [PrefixPeriodRegex, OneWordPeriodRegex, UnspecificEndOfRangeRegex]
 WeekWithWeekDayRangeRegex: !nestedRegex
   def: \b((?<week>({NextPrefixRegex}|{PastPrefixRegex}|this)\s+week)((\s+between\s+{WeekDayRegex}\s+and\s+{WeekDayRegex})|(\s+from\s+{WeekDayRegex}\s+to\s+{WeekDayRegex})))\b
   references: [NextPrefixRegex, PastPrefixRegex, WeekDayRegex]

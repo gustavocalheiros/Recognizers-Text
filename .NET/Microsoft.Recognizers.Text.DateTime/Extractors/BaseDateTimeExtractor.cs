@@ -219,8 +219,9 @@ namespace Microsoft.Recognizers.Text.DateTime
                 var beforeStr = text.Substring(0, er.Start ?? 0);
 
                 // handle "this morning at 7am"
-                var innerMatch = this.config.TimeOfDayRegex.Match(er.Text);
-                if (innerMatch.Success && innerMatch.Index == 0)
+                var innerMatch = this.config.TimeOfDayRegex.MatchBegin(er.Text, trim: true);
+
+                if (innerMatch.Success)
                 {
                     beforeStr = text.Substring(0, (er.Start ?? 0) + innerMatch.Length);
                 }
@@ -253,12 +254,12 @@ namespace Microsoft.Recognizers.Text.DateTime
             var ret = new List<Token>();
             var ers = this.config.DatePointExtractor.Extract(text, reference);
 
-            // handle "the end of the day"
+            // Handle "the end of the day"
             foreach (var er in ers)
             {
                 var beforeStr = text.Substring(0, er.Start ?? 0);
 
-                var match = this.config.TheEndOfRegex.Match(beforeStr);
+                var match = this.config.SpecificEndOfRegex.Match(beforeStr);
                 if (match.Success)
                 {
                     ret.Add(new Token(match.Index, er.Start + er.Length ?? 0));
@@ -267,12 +268,19 @@ namespace Microsoft.Recognizers.Text.DateTime
                 {
                     var afterStr = text.Substring(er.Start + er.Length ?? 0);
 
-                    match = this.config.TheEndOfRegex.Match(afterStr);
+                    match = this.config.SpecificEndOfRegex.Match(afterStr);
                     if (match.Success)
                     {
                         ret.Add(new Token(er.Start ?? 0, er.Start + er.Length + match.Index + match.Length ?? 0));
                     }
                 }
+            }
+
+            // Handle "eod, end of day"
+            MatchCollection eod = this.config.UnspecificEndOfRegex.Matches(text);
+            foreach (Match match in eod)
+            {
+                ret.Add(new Token(match.Index, match.Index + match.Length));
             }
 
             return ret;
@@ -282,7 +290,7 @@ namespace Microsoft.Recognizers.Text.DateTime
         public List<Token> SpecialTimeOfDay(string text, DateObject reference)
         {
             var ret = new List<Token>();
-            var match = this.config.TheEndOfRegex.Match(text);
+            var match = this.config.SpecificEndOfRegex.Match(text);
             if (match.Success)
             {
                 ret.Add(new Token(match.Index, text.Length));

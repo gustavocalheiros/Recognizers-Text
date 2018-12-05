@@ -11,6 +11,8 @@ PastSuffixRegex: !simpleRegex
   def: (?<order>precedente)\b
 ThisPrefixRegex: !simpleRegex
   def: (quest[oa]|corrente)\b
+RangePrefixRegex: !simpleRegex
+  def: (du|de|des|depuis|entre)
 DayRegex: !simpleRegex
   def: (il\s*)?(?<day>01|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17|18|19|1|20|21|22|23|24|25|26|27|28|29|2|30|31|3|4|5|6|7|8|9)(?=\b|t)
 MonthNumRegex: !simpleRegex
@@ -91,15 +93,11 @@ MonthOfRegex: !simpleRegex
   def: (mese)(\s*)(di)
 MonthRegex: !simpleRegex
   def: (?<month>Aprile|Apr|Agosto|Ago|Dicembre|Dic|Febbraio|Feb|Gennaio|Gen|Luglio|Lug|Giugno|Giu|Marzo|Mar|Maggio|Mar|Novembre|Nov|Ottobre|Ott|Settembre|Set)
-AmDescRegex: !simpleRegex
-  def: (am\b|a\.m\.|a m\b|a\. m\.|a\.m\b|a\. m\b|a m\b)
-PmDescRegex: !simpleRegex
-  def: (pm\b|p\.m\.|p\b|p m\b|p\. m\.|p\.m\b|p\. m\b|p m\b)
 #This is a look-behind assertion. Some cases should extract two digits as year like 11/25/16, where 16 means 2016. 
 #The assertion determines if not connected with am/pm or hour separator (:), which should be a time.
 DateYearRegex: !nestedRegex
   def: (?<year>19\d{2}|20\d{2}|(([0-27-9]\d)(?!(\s*((\:)|{AmDescRegex}|{PmDescRegex})))))
-  references: [ DescRegex, AmDescRegex, PmDescRegex ]
+  references: [ AmDescRegex, PmDescRegex ]
 OnRegex: !nestedRegex
   def: (?<=\b(di|su)\s+)({DayRegex}s?)\b
   references: [ DayRegex ]
@@ -186,8 +184,20 @@ WeekDayEnd: !nestedRegex
   references: [ WeekDayRegex ]
 RangeUnitRegex: !simpleRegex
   def: \b(?<unit>l'anno|ann[oi]?|mesi|settimane|settimana)\b
-DescRegex: !simpleRegex
-  def: (?<desc>h|ampm|am\b|a\.m\.|a m\b|a\. m\.|a\.m\b|a\. m\b|pm\b|p\.m\.|p m\b|p\. m\.|p\.m\b|p\. m\b|p\b\b)
+SpecialDescRegex: !simpleRegex
+  def: (p\b)
+AmDescRegex: !nestedRegex
+  def: (h|{BaseDateTime.BaseAmDescRegex})
+  references: [BaseDateTime.BaseAmDescRegex]
+PmDescRegex: !nestedRegex
+  def: (h|{BaseDateTime.BasePmDescRegex})
+  references: [BaseDateTime.BasePmDescRegex]
+AmPmDescRegex: !nestedRegex
+  def: (h|{BaseDateTime.BaseAmPmDescRegex})
+  references: [BaseDateTime.BaseAmPmDescRegex]
+DescRegex: !nestedRegex
+  def: (?<desc>{AmPmDescRegex}|{AmDescRegex}|{PmDescRegex}|{SpecialDescRegex})
+  references: [AmDescRegex, PmDescRegex, AmPmDescRegex, SpecialDescRegex]
 HourNumRegex: !simpleRegex
   def: \b(?<hournum>zero|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici)\b
 MinuteNumRegex: !simpleRegex
@@ -335,8 +345,14 @@ SimpleTimeOfTodayAfterRegex: !nestedRegex
 SimpleTimeOfTodayBeforeRegex: !nestedRegex
   def: '{DateTimeSpecificTimeOfDayRegex}(\s*,)?(\s+(di|verso))?\s*({HourNumRegex}|{BaseDateTime.HourRegex})'
   references: [ DateTimeSpecificTimeOfDayRegex, HourNumRegex, BaseDateTime.HourRegex ]
-TheEndOfRegex: !simpleRegex
+SpecificEndOfRegex: !simpleRegex
   def: (alla\s+)?fine di(\s+del)?\s*$
+UnspecificEndOfRegex: !simpleRegex
+  # TODO: modify below regex according to the counterpart in English
+  def: ^[.]
+UnspecificEndOfRangeRegex: !simpleRegex
+  # TODO: modify below regex according to the counterpart in English
+  def: ^[.]
 PeriodTimeOfDayRegex: !simpleRegex
   def: \b((alla\s+(al)?\s+)?((?<early>prima(\s+|-))|(?<late>tarda(\s+|-)))?(?<timeOfDay>mattina|pomeriggio|notte|sera))\b
 PeriodSpecificTimeOfDayRegex: !nestedRegex
@@ -426,12 +442,6 @@ InConnectorRegex: !simpleRegex
 WithinNextPrefixRegex: !simpleRegex
   # TODO: modify below regex according to the counterpart in English
   def: ^[.]
-AmDescRegex: !simpleRegex
-  def: (h|am\b|a\.m\.|a m\b|a\. m\.|a\.m\b|a\. m\b)
-PmDescRegex: !simpleRegex
-  def: (h|pm\b|p\.m\.|p\b|p m\b|p\. m\.|p\.m\b|p\. m\b)
-AmPmDescRegex: !simpleRegex
-  def: (h|ampm)
 MorningStartEndRegex: !simpleRegex
   def: (^(mattin[oa]))|((mattin[oa])$)
 AfternoonStartEndRegex: !simpleRegex

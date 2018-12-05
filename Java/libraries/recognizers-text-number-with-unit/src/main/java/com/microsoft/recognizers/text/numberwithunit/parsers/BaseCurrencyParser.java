@@ -8,7 +8,12 @@ import com.microsoft.recognizers.text.numberwithunit.models.CurrencyUnitValue;
 import com.microsoft.recognizers.text.numberwithunit.models.UnitValue;
 import com.microsoft.recognizers.text.numberwithunit.utilities.DictionaryUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 
 public class BaseCurrencyParser implements IParser {
 
@@ -28,7 +33,7 @@ public class BaseCurrencyParser implements IParser {
             return mergeCompoundUnit(extResult);
         } else {
             pr = numberWithUnitParser.parse(extResult);
-            UnitValue value = (UnitValue) pr.value;
+            UnitValue value = (UnitValue)pr.value;
 
             String mainUnitIsoCode = null;
             if (value != null && config.getCurrencyNameToIsoCodeMap().containsKey(value.unit)) {
@@ -43,9 +48,10 @@ public class BaseCurrencyParser implements IParser {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private ParseResult mergeCompoundUnit(ExtractResult compoundResult) {
         List<ParseResult> results = new ArrayList<>();
-        List<ExtractResult> compoundUnit = (List<ExtractResult>) compoundResult.data;
+        List<ExtractResult> compoundUnit = (List<ExtractResult>)compoundResult.data;
 
         int count = 0;
         ParseResult result = null;
@@ -57,7 +63,7 @@ public class BaseCurrencyParser implements IParser {
         for (int idx = 0; idx < compoundUnit.size(); idx++) {
             ExtractResult extractResult = compoundUnit.get(idx);
             ParseResult parseResult = numberWithUnitParser.parse(extractResult);
-            Optional<UnitValue> parseResultValue = Optional.ofNullable(parseResult.value instanceof UnitValue ? (UnitValue) parseResult.value : null);
+            Optional<UnitValue> parseResultValue = Optional.ofNullable(parseResult.value instanceof UnitValue ? (UnitValue)parseResult.value : null);
             String unitValue = parseResultValue.isPresent() ? parseResultValue.get().unit : "";
 
             // Process a new group
@@ -82,14 +88,14 @@ public class BaseCurrencyParser implements IParser {
                     continue;
                 }
 
-                fractionUnitsString = config.getCurrencyFractionMapping().containsKey(mainUnitIsoCode)
-                        ? config.getCurrencyFractionMapping().get(mainUnitIsoCode)
-                        : fractionUnitsString;
+                fractionUnitsString = config.getCurrencyFractionMapping().containsKey(mainUnitIsoCode) ?
+                        config.getCurrencyFractionMapping().get(mainUnitIsoCode) :
+                        fractionUnitsString;
             } else {
 
                 // Match pure number as fraction unit.
                 if (extractResult.type.equals(Constants.SYS_NUM)) {
-                    numberValue += (double) parseResult.value * (1.0 / 100);
+                    numberValue += (double)parseResult.value * (1.0 / 100);
                     result = result
                             .withResolutionStr(result.resolutionStr + " " + parseResult.resolutionStr)
                             .withLength(parseResult.start + parseResult.length - result.start);
@@ -97,17 +103,17 @@ public class BaseCurrencyParser implements IParser {
                     continue;
                 }
 
-                String fractionUnitCode = config.getCurrencyFractionCodeList().containsKey(unitValue)
-                        ? config.getCurrencyFractionCodeList().get(unitValue)
-                        : null;
+                String fractionUnitCode = config.getCurrencyFractionCodeList().containsKey(unitValue) ?
+                        config.getCurrencyFractionCodeList().get(unitValue) :
+                        null;
 
                 String unit = parseResultValue.isPresent() ? parseResultValue.get().unit : null;
-                Optional<Long> fractionNumValue = Optional.ofNullable(config.getCurrencyFractionNumMap().containsKey(unit)
-                        ? config.getCurrencyFractionNumMap().get(unit)
-                        : null);
+                Optional<Long> fractionNumValue = Optional.ofNullable(config.getCurrencyFractionNumMap().containsKey(unit) ?
+                        config.getCurrencyFractionNumMap().get(unit) :
+                        null);
 
                 if (fractionUnitCode != null && !fractionUnitCode.isEmpty() && fractionNumValue.isPresent() && fractionNumValue.get() != 0 &&
-                        checkUnitsStringContains(fractionUnitCode, fractionUnitsString)) {
+                    checkUnitsStringContains(fractionUnitCode, fractionUnitsString)) {
                     numberValue += Double.parseDouble(parseResultValue.get().number) * (1.0 / fractionNumValue.get());
                     result = result
                             .withResolutionStr(result.resolutionStr + " " + parseResult.resolutionStr)
@@ -116,7 +122,7 @@ public class BaseCurrencyParser implements IParser {
                     // If the fraction unit doesn't match the main unit, finish process this group.
                     if (result != null) {
                         if (mainUnitIsoCode == null || mainUnitIsoCode.isEmpty() ||
-                                mainUnitIsoCode.startsWith(Constants.FAKE_ISO_CODE_PREFIX)) {
+                            mainUnitIsoCode.startsWith(Constants.FAKE_ISO_CODE_PREFIX)) {
                             result = result.withValue(new UnitValue(String.valueOf(numberValue), mainUnitValue));
                         } else {
                             result = result.withValue(new CurrencyUnitValue(String.valueOf(numberValue), mainUnitValue, mainUnitIsoCode));
@@ -137,7 +143,7 @@ public class BaseCurrencyParser implements IParser {
 
         if (result != null) {
             if (mainUnitIsoCode == null || mainUnitIsoCode.isEmpty() ||
-                    mainUnitIsoCode.startsWith(Constants.FAKE_ISO_CODE_PREFIX)) {
+                mainUnitIsoCode.startsWith(Constants.FAKE_ISO_CODE_PREFIX)) {
                 result = result.withValue(new UnitValue(String.valueOf(numberValue), mainUnitValue));
             } else {
                 result = result.withValue(new CurrencyUnitValue(String.valueOf(numberValue), mainUnitValue, mainUnitIsoCode));
@@ -152,7 +158,7 @@ public class BaseCurrencyParser implements IParser {
     }
 
     private boolean checkUnitsStringContains(String fractionUnitCode, String fractionUnitsString) {
-        Map<String, String> unitsMap = new HashMap<>();
+        Map<String, String> unitsMap = new HashMap<String, String>();
         DictionaryUtils.bindUnitsString(unitsMap, "", fractionUnitsString);
         return unitsMap.containsKey(fractionUnitCode);
     }

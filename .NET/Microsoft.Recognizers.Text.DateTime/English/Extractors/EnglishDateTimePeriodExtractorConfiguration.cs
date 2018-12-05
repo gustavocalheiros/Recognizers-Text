@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-
 using Microsoft.Recognizers.Definitions.English;
 
 namespace Microsoft.Recognizers.Text.DateTime.English
@@ -175,8 +174,9 @@ namespace Microsoft.Recognizers.Text.DateTime.English
 
         public bool HasConnectorToken(string text)
         {
-            var match = Regex.Match(text, DateTimeDefinitions.RangeConnectorRegex);
-            return match.Success && match.Length == text.Trim().Length;
+            var rangeConnetorRegex = new Regex(DateTimeDefinitions.RangeConnectorRegex);
+
+            return rangeConnetorRegex.IsExactMatch(text, trim: true);
         }
     }
 }
